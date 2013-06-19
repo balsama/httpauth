@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * Implementation of hook_boot().
+ *
+ * Ask for user credentials and try to authenticate.
+ */
+function httpauth_boot() {
+  require_once DRUPAL_ROOT . '/includes/password.inc';
+
+  // Allow cron
+  if (basename($_SERVER['PHP_SELF']) == 'cron.php') {
+    return;
+  }
+
+  // Allow PHP CLI/Drush
+  elseif (isset($_SERVER['argc'])) {
+    if (php_sapi_name() == 'cli' || (is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0)) {
+      return;
+    }
+  }
+
+  if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+    $query = "SELECT pass FROM {users} WHERE name = :name";
+    $result = db_query($query, array(':name' => $_SERVER['PHP_AUTH_USER']));
+    $account = new stdClass();
+    foreach ($result as $row) {
+      $account->pass = $row->pass;
+    }
+    if (isset($account->pass)) {
+      if (user_check_password($_SERVER['PHP_AUTH_PW'], $account)) {
+        return;
+      }
+    }
+  }
+
+  header('WWW-Authenticate: Basic realm="Non-production Environment"');
+  header('HTTP/1.0 401 Unauthorized');
+  exit;
+}
