@@ -1,5 +1,5 @@
 name = HTTP Authorization
 description = "Forces valid Drupal account needed to view site."
 package = Other
-core = 7.x
+core = 6.x
 

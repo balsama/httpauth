@@ -6,14 +6,12 @@
  * Ask for user credentials and try to authenticate.
  */
 function httpauth_boot() {
-  require_once DRUPAL_ROOT . '/includes/password.inc';
-
   // Allow cron
   if (basename($_SERVER['PHP_SELF']) == 'cron.php') {
     return;
   }
 
-  // Allow PHP CLI/Drush
+  // Allow drush
   elseif (isset($_SERVER['argc'])) {
     if (php_sapi_name() == 'cli' || (is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0)) {
       return;
@@ -21,16 +19,10 @@ function httpauth_boot() {
   }
 
   if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
-    $query = "SELECT pass FROM {users} WHERE name = :name";
-    $result = db_query($query, array(':name' => $_SERVER['PHP_AUTH_USER']));
-    $account = new stdClass();
-    foreach ($result as $row) {
-      $account->pass = $row->pass;
-    }
-    if (isset($account->pass)) {
-      if (user_check_password($_SERVER['PHP_AUTH_PW'], $account)) {
-        return;
-      }
+    $query = "SELECT pass FROM {users} WHERE name = '%s'";
+    $result = db_result(db_query($query, $_SERVER['PHP_AUTH_USER']));
+    if (md5($_SERVER['PHP_AUTH_PW']) == $result) {
+      return;
     }
   }
 
